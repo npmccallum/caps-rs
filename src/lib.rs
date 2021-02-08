@@ -417,6 +417,21 @@ pub fn to_canonical(name: &str) -> String {
     }
 }
 
+/// Executes a closure with the given capability in the effective set.
+///
+/// The provided `Capability` will be raised into `CapSet::Effective` on the
+/// current thread for the duration of the closure execution. When the closure
+/// completes execution, the `Capability` will be dropped from `CapSet::Effective`.
+pub fn with<T, E: From<Error>>(
+    capability: Capability,
+    closure: impl FnOnce() -> std::result::Result<T, E>,
+) -> std::result::Result<T, E> {
+    raise(None, CapSet::Effective, capability)?;
+    let retval = closure();
+    drop(None, CapSet::Effective, capability)?;
+    retval
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
